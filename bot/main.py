@@ -29,6 +29,7 @@ from bot.handlers.iou import (
 )
 from bot.handlers.collection import sebeseb_handler, mesebeboch_handler
 from bot.handlers.dashboard import dashboard_handler, netib_handler
+from bot.handlers.admin import admin_handler
 from bot.handlers.callbacks import callback_router
 from bot.services.reminders import reminder_job
 
@@ -142,6 +143,9 @@ def main():
 
     # /erdata, /help
     app.add_handler(CommandHandler(["erdata", "help"], help_handler))
+
+    # /admin (restricted)
+    app.add_handler(CommandHandler("admin", admin_handler))
 
     # ── Callback Query Handler (all inline buttons) ──
     app.add_handler(CallbackQueryHandler(callback_router))
