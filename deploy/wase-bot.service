@@ -1,0 +1,15 @@
+[Unit]
+Description=Wase Telegram Bot
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/wase
+EnvironmentFile=/etc/wase/.env
+ExecStart=/root/wase/venv/bin/python -m bot.main
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
