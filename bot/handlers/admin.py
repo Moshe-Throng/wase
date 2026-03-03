@@ -60,6 +60,15 @@ def _fetch_stats() -> dict:
     lang_en = client.table("wase_users").select("user_id", count="exact").eq("language", "en").execute()
     lang_am = client.table("wase_users").select("user_id", count="exact").eq("language", "am").execute()
 
+    # Users registered this week (with details)
+    recent_users = (
+        client.table("wase_users")
+        .select("user_id, username, first_name, created_at")
+        .gte("created_at", week_ago)
+        .order("created_at", desc=True)
+        .execute()
+    )
+
     return {
         "total_users": total_users,
         "new_today": new_today_count,
@@ -76,6 +85,7 @@ def _fetch_stats() -> dict:
         "total_events": total_events.count or 0,
         "lang_en": lang_en.count or 0,
         "lang_am": lang_am.count or 0,
+        "recent_users": recent_users.data or [],
     }
 
 
@@ -115,5 +125,15 @@ async def admin_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         "",
         f"🛡 Trust events: {stats['total_events']}",
     ]
+
+    # Users registered this week
+    if stats["recent_users"]:
+        lines.append("")
+        lines.append(f"👥 NEW THIS WEEK ({len(stats['recent_users'])})")
+        for u in stats["recent_users"]:
+            name = u.get("first_name") or "?"
+            uname = f"@{u['username']}" if u.get("username") else ""
+            date_str = u.get("created_at", "")[:10]
+            lines.append(f"  {name} {uname} — {date_str}")
 
     await update.message.reply_text("\n".join(lines))
