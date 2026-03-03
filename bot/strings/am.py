@@ -185,6 +185,7 @@ MENU_SCORE_HINT = "🛡 /netib ይጻፉ"
 # ══════════════════════════════════════════════════════════════
 
 CONV_DIRECTION = "🤝 ምን ሆነ?"
+CONV_DIRECTION_HINT = "👆 /eda ብለው ይጻፉ ብድር ለመመዝገብ"
 BTN_I_LENT = "💸 አበድሬያለሁ"
 BTN_I_BORROWED = "🤲 ተበድሬያለሁ"
 CONV_WHO_BORROWED = "👤 ማን ተበድሮ? @username ላክ"

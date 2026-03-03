@@ -104,7 +104,18 @@ def main():
             REASON: [MessageHandler(filters.TEXT & ~filters.COMMAND, conv_reason)],
             DEADLINE: [MessageHandler(filters.TEXT & ~filters.COMMAND, conv_deadline)],
         },
-        fallbacks=[CommandHandler("cancel", conv_cancel)],
+        fallbacks=[
+            CommandHandler("cancel", conv_cancel),
+            CommandHandler(["eda", "iou"], eda_handler),       # restart mid-flow
+            CommandHandler("start", conv_cancel),               # /start breaks out
+            CommandHandler("dashboard", conv_cancel),
+            CommandHandler(["netib", "score"], conv_cancel),
+            CommandHandler(["edawoch", "myious"], conv_cancel),
+            CommandHandler(["kefel", "payback"], conv_cancel),
+            CommandHandler(["erdata", "help"], conv_cancel),
+            CommandHandler("language", conv_cancel),
+        ],
+        conversation_timeout=300,  # 5 min timeout — auto-cancel abandoned flows
     )
     app.add_handler(eda_conv)
 

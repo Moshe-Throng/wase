@@ -160,6 +160,7 @@ ERR_USAGE_PAYBACK = "📝 Usage: /kefel [IOU number]\nExample: /kefel 42"
 # ══════════════════════════════════════════════════════════════
 
 CONV_DIRECTION = "🤝 What happened?"
+CONV_DIRECTION_HINT = "👆 Type /eda to start recording a loan"
 BTN_I_LENT = "💸 I lent money"
 BTN_I_BORROWED = "🤲 I borrowed money"
 CONV_WHO_BORROWED = "👤 Who borrowed from you? Send their @username"

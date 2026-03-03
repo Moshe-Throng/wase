@@ -84,23 +84,11 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 # ── Menu Actions (actually do things) ────────────────────────
 
 async def _menu_start_iou(query, user, context):
-    """Start the IOU conversational flow from the menu button."""
+    """Guide user to start IOU flow."""
     t = s(user.id)
-    # Send the direction question as a NEW message (not edit)
-    # The ConversationHandler will pick this up via its entry point
-    keyboard = ReplyKeyboardMarkup(
-        [[t.BTN_I_LENT, t.BTN_I_BORROWED]],
-        one_time_keyboard=True, resize_keyboard=True,
+    await query.edit_message_text(
+        t.ERR_USAGE_IOU + "\n\n" + t.CONV_DIRECTION_HINT
     )
-    await query.edit_message_text(t.CONV_DIRECTION)
-    await context.bot.send_message(
-        chat_id=query.message.chat_id,
-        text=t.CONV_DIRECTION,
-        reply_markup=keyboard,
-    )
-    # Put user into DIRECTION state manually
-    from bot.handlers.iou import DIRECTION
-    context.user_data["_conv_started_from_menu"] = True
 
 
 async def _menu_show_dashboard(query, user, context):
