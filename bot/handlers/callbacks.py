@@ -6,17 +6,20 @@ Callback data patterns:
   iou_dispute_{id}   — Either party disputes IOU
   iou_paid_{id}      — Other party confirms payment
   iou_notpaid_{id}   — Other party denies payment
+  kefel_pick_{id}    — User picks IOU to mark as paid (button flow)
   col_paid_{id}      — User marks contribution as paid
   col_status_{id}    — View collection status
   lang_am / lang_en  — Language selection
-  menu_new_iou       — Start IOU flow from menu
+  go_home            — Show home screen
+  go_edawoch         — Show IOU list inline
+  go_kefel           — Show pay picker inline
   menu_dashboard     — Show dashboard inline
   menu_score         — Show trust score inline
   menu_new_collect   — Show group instructions
 """
 
 from datetime import date
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 
 from bot.strings.lang import s, set_lang
@@ -32,6 +35,14 @@ from bot.services.trust_score import calculate_trust_score
 from bot.utils.formatting import birr, get_name_from_record, progress_bar
 
 
+def _nav_buttons(t):
+    """Standard navigation buttons."""
+    return [
+        InlineKeyboardButton(t.BTN_MY_IOUS, callback_data="go_edawoch"),
+        InlineKeyboardButton(t.BTN_GO_HOME, callback_data="go_home"),
+    ]
+
+
 async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Route all callback queries to the appropriate handler."""
     query = update.callback_query
@@ -44,16 +55,28 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         lang = "am" if data == "lang_am" else "en"
         set_lang(user.id, lang)
         await query.answer()
-        # Re-read strings AFTER language change
-        t = s(user.id)
-        from bot.handlers.start import _send_welcome
-        await _send_welcome(query, user.id)
+        from bot.handlers.start import send_home
+        await send_home(query, user.id, context)
         return
 
     await query.answer()
     t = s(user.id)
 
-    # IOU callbacks
+    # ── Navigation callbacks ──
+    if data == "go_home":
+        from bot.handlers.start import send_home
+        await send_home(query, user.id, context)
+        return
+    elif data == "go_edawoch":
+        from bot.handlers.iou import edawoch_inline
+        await edawoch_inline(query, user, context)
+        return
+    elif data == "go_kefel":
+        from bot.handlers.iou import kefel_inline
+        await kefel_inline(query, user, context)
+        return
+
+    # ── IOU callbacks ──
     if data.startswith("iou_confirm_"):
         await _handle_iou_confirm(query, user, int(data.split("_")[-1]), context)
     elif data.startswith("iou_dispute_"):
@@ -62,14 +85,14 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         await _handle_iou_paid(query, user, int(data.split("_")[-1]), context)
     elif data.startswith("iou_notpaid_"):
         await _handle_iou_notpaid(query, user, int(data.split("_")[-1]), context)
+    elif data.startswith("kefel_pick_"):
+        await _handle_kefel_pick(query, user, int(data.split("_")[-1]), context)
     # Collection callbacks
     elif data.startswith("col_paid_"):
         await _handle_col_paid(query, user, int(data.split("_")[-1]), context)
     elif data.startswith("col_status_"):
         await _handle_col_status(query, user, int(data.split("_")[-1]), context)
-    # Menu callbacks — actually execute the features
-    elif data == "menu_new_iou":
-        await _menu_start_iou(query, user, context)
+    # Menu callbacks
     elif data == "menu_dashboard":
         await _menu_show_dashboard(query, user, context)
     elif data == "menu_score":
@@ -81,15 +104,7 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         )
 
 
-# ── Menu Actions (actually do things) ────────────────────────
-
-async def _menu_start_iou(query, user, context):
-    """Guide user to start IOU flow."""
-    t = s(user.id)
-    await query.edit_message_text(
-        t.ERR_USAGE_IOU + "\n\n" + t.CONV_DIRECTION_HINT
-    )
-
+# ── Menu Actions ──────────────────────────────────────────────
 
 async def _menu_show_dashboard(query, user, context):
     """Show dashboard data inline from the menu button."""
@@ -123,7 +138,8 @@ async def _menu_show_dashboard(query, user, context):
     lines.append("")
     lines.append(f"🛡 {score_data['tier']}  {progress_bar(score_data['score'], 100)}")
 
-    await query.edit_message_text("\n".join(lines))
+    keyboard = InlineKeyboardMarkup([_nav_buttons(t)])
+    await query.edit_message_text("\n".join(lines), reply_markup=keyboard)
 
 
 async def _menu_show_score(query, user, context):
@@ -162,7 +178,8 @@ async def _menu_show_score(query, user, context):
     lines.append("")
     lines.append(t.SCORE_IMPROVE)
 
-    await query.edit_message_text("\n".join(lines))
+    keyboard = InlineKeyboardMarkup([_nav_buttons(t)])
+    await query.edit_message_text("\n".join(lines), reply_markup=keyboard)
 
 
 # ── IOU Callbacks ──────────────────────────────────────────────
@@ -183,18 +200,23 @@ async def _handle_iou_confirm(query, user, iou_id, context):
     record_trust_event(iou["lender_id"], "iou_created", 0, iou_id)
     record_trust_event(iou["borrower_id"], "iou_created", 0, iou_id)
 
-    await query.edit_message_text(t.IOU_CONFIRMED.format(id=iou_id))
+    keyboard = InlineKeyboardMarkup([_nav_buttons(t)])
+    await query.edit_message_text(
+        t.IOU_CONFIRMED.format(id=iou_id), reply_markup=keyboard,
+    )
 
     other_id = iou["lender_id"] if user.id == iou["borrower_id"] else iou["borrower_id"]
     ot = s(other_id)
     confirmer = get_user_by_id(user.id)
     confirmer_name = get_name_from_record(confirmer) if confirmer else str(user.id)
     try:
+        nav_kb = InlineKeyboardMarkup([_nav_buttons(ot)])
         await context.bot.send_message(
             chat_id=other_id,
             text=ot.IOU_CONFIRMED_NOTIFY.format(
                 borrower=confirmer_name, id=iou_id, amount=birr(iou["amount"])
             ),
+            reply_markup=nav_kb,
         )
     except Exception:
         pass
@@ -213,7 +235,10 @@ async def _handle_iou_dispute(query, user, iou_id, context):
         return
 
     dispute_iou(iou_id)
-    await query.edit_message_text(t.IOU_DISPUTED.format(id=iou_id))
+    keyboard = InlineKeyboardMarkup([_nav_buttons(t)])
+    await query.edit_message_text(
+        t.IOU_DISPUTED.format(id=iou_id), reply_markup=keyboard,
+    )
 
     other_id = iou["lender_id"] if user.id == iou["borrower_id"] else iou["borrower_id"]
     ot = s(other_id)
@@ -251,15 +276,18 @@ async def _handle_iou_paid(query, user, iou_id, context):
         if date.today() <= due:
             record_trust_event(iou["borrower_id"], "iou_early", 2, iou_id)
 
+    keyboard = InlineKeyboardMarkup([_nav_buttons(t)])
     await query.edit_message_text(
         t.IOU_PAID.format(id=iou_id) + "\n" +
         t.IOU_PAID_DETAIL.format(amount=birr(iou["amount"])) + "\n" +
-        t.IOU_TRUST_NOTE
+        t.IOU_TRUST_NOTE,
+        reply_markup=keyboard,
     )
 
     other_id = iou["lender_id"] if user.id == iou["borrower_id"] else iou["borrower_id"]
     ot = s(other_id)
     try:
+        nav_kb = InlineKeyboardMarkup([_nav_buttons(ot)])
         await context.bot.send_message(
             chat_id=other_id,
             text=(
@@ -267,6 +295,7 @@ async def _handle_iou_paid(query, user, iou_id, context):
                 ot.IOU_PAID_DETAIL.format(amount=birr(iou["amount"])) + "\n" +
                 ot.IOU_TRUST_NOTE
             ),
+            reply_markup=nav_kb,
         )
     except Exception:
         pass
@@ -284,7 +313,54 @@ async def _handle_iou_notpaid(query, user, iou_id, context):
         await query.answer(t.ERR_NOT_YOURS, show_alert=True)
         return
 
-    await query.edit_message_text(t.IOU_NOT_PAID.format(id=iou_id))
+    keyboard = InlineKeyboardMarkup([_nav_buttons(t)])
+    await query.edit_message_text(
+        t.IOU_NOT_PAID.format(id=iou_id), reply_markup=keyboard,
+    )
+
+
+# ── Kefel Pick Callback ───────────────────────────────────────
+
+async def _handle_kefel_pick(query, user, iou_id, context):
+    """User picked an IOU from the button list to mark as paid."""
+    iou = get_iou(iou_id)
+    t = s(user.id)
+    if not iou:
+        await query.edit_message_text(t.ERR_NOT_FOUND)
+        return
+
+    if user.id not in (iou["lender_id"], iou["borrower_id"]):
+        await query.answer(t.ERR_NOT_YOURS, show_alert=True)
+        return
+
+    other_id = iou["lender_id"] if user.id == iou["borrower_id"] else iou["borrower_id"]
+    other = get_user_by_id(other_id)
+    other_name = get_name_from_record(other) if other else str(other_id)
+
+    ot = s(other_id)
+    user_record = get_user_by_id(user.id)
+    user_name = get_name_from_record(user_record) if user_record else str(user.id)
+
+    pay_text = ot.IOU_PAY_REQUEST.format(
+        name=user_name, id=iou_id, amount=birr(iou["amount"]),
+    )
+    pay_kb = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton(ot.BTN_CONFIRM_PAY, callback_data=f"iou_paid_{iou_id}"),
+            InlineKeyboardButton(ot.BTN_NOT_PAID, callback_data=f"iou_notpaid_{iou_id}"),
+        ]
+    ])
+
+    try:
+        await context.bot.send_message(chat_id=other_id, text=pay_text, reply_markup=pay_kb)
+        keyboard = InlineKeyboardMarkup([_nav_buttons(t)])
+        await query.edit_message_text(
+            t.IOU_PAY_SENT.format(name=other_name), reply_markup=keyboard,
+        )
+    except Exception:
+        await query.edit_message_text(
+            t.ERR_DM_FAILED.format(username=other.get("username", "?") if other else "?")
+        )
 
 
 # ── Collection Callbacks ──────────────────────────────────────

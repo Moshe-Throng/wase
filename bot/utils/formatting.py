@@ -109,7 +109,7 @@ def parse_iou_command(text: str) -> dict | None:
 
 def parse_collection_command(text: str) -> dict | None:
     """
-    Parse /sebeseb command arguments.
+    Parse /sebseb command arguments.
     Format: title - amount ሰው/each  OR  title - amount ጠቅላላ/total
 
     Returns dict with keys: title, amount_per_person, target_amount
@@ -158,6 +158,32 @@ def parse_collection_command(text: str) -> dict | None:
             "amount_per_person": amount,
             "target_amount": None,
         }
+
+
+def parse_relative_deadline(text: str):
+    """
+    Parse relative deadline like '10 days', '3 weeks', '2 months'.
+    Also supports Amharic: '10 ቀን', '3 ሳምንት', '2 ወር'.
+    Returns a date or None.
+    """
+    from datetime import timedelta
+
+    text = text.lower().strip()
+    match = re.match(r"(\d+)\s*(day|days|ቀን|ቀናት|week|weeks|ሳምንት|month|months|ወር|ወራት)", text)
+    if not match:
+        return None
+
+    num = int(match.group(1))
+    unit = match.group(2)
+    today = date.today()
+
+    if unit in ("day", "days", "ቀን", "ቀናት"):
+        return today + timedelta(days=num)
+    elif unit in ("week", "weeks", "ሳምንት"):
+        return today + timedelta(weeks=num)
+    elif unit in ("month", "months", "ወር", "ወራት"):
+        return today + timedelta(days=num * 30)
+    return None
 
 
 def progress_bar(current: int, total: int, width: int = 10) -> str:

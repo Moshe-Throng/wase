@@ -4,7 +4,7 @@ Handlers for dashboard and trust score commands:
   /netib      — Trust score with breakdown
 """
 
-from telegram import Update
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 
 from bot.strings.lang import s
@@ -14,13 +14,20 @@ from bot.services.trust_score import calculate_trust_score
 from bot.utils.formatting import birr, get_name, progress_bar
 
 
+def _nav_buttons(t):
+    """Standard navigation buttons for dashboard."""
+    return [
+        InlineKeyboardButton(t.BTN_MY_IOUS, callback_data="go_edawoch"),
+        InlineKeyboardButton(t.BTN_GO_HOME, callback_data="go_home"),
+    ]
+
+
 async def dashboard_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle /dashboard — full financial overview."""
     user = update.effective_user
     upsert_user(user.id, user.username, user.first_name)
     t = s(user.id)
 
-    # Run heavy DB queries in thread pool (non-blocking)
     summary = await run_sync(get_user_financial_summary, user.id)
     score_data = await run_sync(calculate_trust_score, user.id)
 
@@ -50,7 +57,8 @@ async def dashboard_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     lines.append("")
     lines.append(f"🛡 {score_data['tier']}  {progress_bar(score_data['score'], 100)}")
 
-    await update.message.reply_text("\n".join(lines))
+    keyboard = InlineKeyboardMarkup([_nav_buttons(t)])
+    await update.message.reply_text("\n".join(lines), reply_markup=keyboard)
 
 
 async def netib_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -89,4 +97,5 @@ async def netib_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     lines.append("")
     lines.append(t.SCORE_IMPROVE)
 
-    await update.message.reply_text("\n".join(lines))
+    keyboard = InlineKeyboardMarkup([_nav_buttons(t)])
+    await update.message.reply_text("\n".join(lines), reply_markup=keyboard)

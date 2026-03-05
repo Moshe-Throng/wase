@@ -8,20 +8,13 @@ English strings for Wase bot.
 
 WELCOME_TITLE = "✦ Wase"
 WELCOME_SUBTITLE = "Your trust has value"
-WELCOME_BODY = "Easily track money between friends."
-FEATURE_IOU = "🤝 IOU — Record who owes what"
-FEATURE_COLLECT = "💰 Collect — Gather money from a group"
-FEATURE_DASH = "📊 Dashboard — See everything at a glance"
-FREE_NOTE = "Everything is free. Both parties confirm."
+WELCOME_BODY = "Easily track IOUs between friends."
 
 WELCOME_MESSAGE = (
     f"{WELCOME_TITLE}\n"
     f"{WELCOME_SUBTITLE}\n\n"
-    f"{WELCOME_BODY}\n\n"
-    f"{FEATURE_IOU}\n"
-    f"{FEATURE_COLLECT}\n"
-    f"{FEATURE_DASH}\n\n"
-    f"{FREE_NOTE}"
+    f"{WELCOME_BODY}\n"
+    "Pick an action below 👇"
 )
 
 # ══════════════════════════════════════════════════════════════
@@ -65,6 +58,13 @@ IOU_LIST_AS_LENDER = "💚 You lent:"
 IOU_LIST_AS_BORROWER = "🔴 You owe:"
 IOU_LIST_ITEM = "  #{id} | {other} | {amount} Birr | {status}"
 
+# Borrower-initiated IOU: lender sees this confirmation
+IOU_CONFIRM_LENDER_REQUEST = (
+    "🤲 {borrower} says they borrowed {amount} Birr from you.\n"
+    "📝 Reason: {desc}\n\n"
+    "Do you confirm?"
+)
+
 # ══════════════════════════════════════════════════════════════
 # BUTTON LABELS
 # ══════════════════════════════════════════════════════════════
@@ -80,6 +80,14 @@ BTN_NEW_COLLECT = "💰 Collect"
 BTN_DASHBOARD = "📊 Dashboard"
 BTN_SCORE = "🛡 Score"
 BTN_OPEN_APP = "📱 Open Wase"
+
+# Navigation buttons
+BTN_GO_HOME = "🏠 Home"
+BTN_MY_IOUS = "📋 My IOUs"
+BTN_PAY_IOU = "💸 Mark as paid"
+
+# Amount quick-pick
+BTN_AMT_OTHER = "✏️ Other amount"
 
 # ══════════════════════════════════════════════════════════════
 # COLLECTION MESSAGES
@@ -102,6 +110,12 @@ COL_LIST_ITEM = "  #{id} | {title} | {count} paid"
 COL_STATUS_HEADER = "📊 Collection #{id} — {title}\n"
 COL_STATUS_PAID = "  ✅ {name}"
 COL_STATUS_UNPAID = "  ⬜ {name}"
+
+# Collection guided flow
+COL_ASK_TITLE = "📝 What's the collection for?\n\nReply with a title (e.g. Birthday gift for Sara)"
+COL_ASK_AMOUNT = "💰 How much per person? (in Birr)\n\nReply with the amount (e.g. 500)"
+COL_TITLE_PLACEHOLDER = "e.g. Birthday gift for Sara"
+COL_AMOUNT_PLACEHOLDER = "e.g. 500"
 
 # ══════════════════════════════════════════════════════════════
 # DASHBOARD MESSAGES
@@ -149,10 +163,10 @@ ERR_NOT_FOUND = "❌ Not found"
 ERR_NOT_YOURS = "❌ This isn't yours"
 ERR_ALREADY_PAID = "Already paid!"
 ERR_USER_NOT_STARTED = "⚠️ @{username} hasn't started Wase yet"
-ERR_GROUP_ONLY = "💰 Collections only work in group chats!\n\nHow to use:\n1. Add @{bot_username} to your group\n2. Send /sebeseb in the group\n\nExample: /sebeseb Birthday gift for Sara - 500 each"
+ERR_GROUP_ONLY = "💰 Collections only work in group chats!\n\nHow to use:\n1. Add @{bot_username} to your group\n2. Send /sebseb in the group\n\nExample: /sebseb Birthday gift for Sara - 500 each"
 ERR_DM_FAILED = "⚠️ @{username} hasn't started Wase yet. Please forward them this invite."
-ERR_USAGE_IOU = "📝 Usage: /eda @user amount [reason]\nExample: /eda @dawit_k 5000 for lunch"
-ERR_USAGE_COLLECT = "📝 Usage: /sebeseb title - amount each\nExample: /sebeseb Gift for Hanna - 500 each"
+ERR_USAGE_IOU = "📝 Usage: /eda @<username> amount [reason]\nExample: /eda @dawit_k 5000 for lunch\n\n(Replace <username> with the person's actual Telegram username)"
+ERR_USAGE_COLLECT = "📝 Usage: /sebseb title - amount each\nExample: /sebseb Gift for Hanna - 500 each"
 ERR_USAGE_PAYBACK = "📝 Usage: /kefel [IOU number]\nExample: /kefel 42"
 
 # ══════════════════════════════════════════════════════════════
@@ -163,26 +177,33 @@ CONV_DIRECTION = "🤝 What happened?"
 CONV_DIRECTION_HINT = "👆 Type /eda to start recording a loan"
 BTN_I_LENT = "💸 I lent money"
 BTN_I_BORROWED = "🤲 I borrowed money"
-CONV_WHO_BORROWED = "👤 Who borrowed from you? Send their @username"
-CONV_WHO_LENT = "👤 Who lent you money? Send their @username"
+CONV_WHO_BORROWED = "👤 Who borrowed from you?\n\nSend their @username"
+CONV_WHO_LENT = "👤 Who lent you money?\n\nSend their @username"
+CONV_WHO_RETRY = "⚠️ @{username} hasn't joined Wase yet.\n\nTry another @username, or forward them the invite below:"
 CONV_AMOUNT = "💰 How much? (in Birr)"
+CONV_AMOUNT_PICK = "💰 How much? Pick or type amount:"
+CONV_AMOUNT_CUSTOM = "✏️ Type the exact amount (e.g. 7500)"
 CONV_AMOUNT_RETRY = "Send a number only (e.g. 5000)"
-CONV_REASON = "📝 Reason? (e.g. for lunch)\nTap ⏩ to skip"
+CONV_REASON = "📝 Reason? (e.g. for lunch)\nOr tap Skip 👇"
 CONV_DEADLINE = "📅 When should it be repaid?"
-CONV_DEADLINE_RETRY = "📅 Pick a button or type a date like 2026-04-15"
+CONV_DEADLINE_RETRY = "📅 Pick a button below, or type:\n• A date: 2026-04-15\n• A period: 10 days, 3 weeks, 2 months"
+CONV_DEADLINE_CUSTOM = "✏️ Type a repayment period:\n• Date: 2026-04-15\n• Days: 10 days\n• Weeks: 3 weeks\n• Months: 2 months"
 CONV_CANCELLED = "❌ Cancelled"
 BTN_SKIP = "⏩ Skip"
+BTN_3_DAYS = "3 days"
 BTN_1_WEEK = "1 week"
 BTN_2_WEEKS = "2 weeks"
 BTN_1_MONTH = "1 month"
+BTN_3_MONTHS = "3 months"
+BTN_OTHER_DEADLINE = "✏️ Other"
 BTN_NO_DEADLINE = "⏩ No deadline"
 
-# Borrower-initiated IOU: lender sees this confirmation
-IOU_CONFIRM_LENDER_REQUEST = (
-    "🤲 {borrower} says they borrowed {amount} Birr from you.\n"
-    "📝 Reason: {desc}\n\n"
-    "Do you confirm?"
-)
+# ══════════════════════════════════════════════════════════════
+# KEFEL BUTTON FLOW
+# ══════════════════════════════════════════════════════════════
+
+KEFEL_PICK = "💸 Which IOU was paid? Pick one:"
+KEFEL_NO_IOUS = "✨ No confirmed IOUs to mark as paid."
 
 # ══════════════════════════════════════════════════════════════
 # REMINDER MESSAGES
@@ -198,11 +219,11 @@ REMINDER_OVERDUE_LENDER = "🔴 @{borrower} IOU #{id} ({amount} Birr) is {days} 
 
 HELP_TITLE = "📖 Wase — Commands\n"
 HELP_COMMANDS = (
-    "🤝 /eda @user amount [reason] — New IOU\n"
+    "🤝 /eda — New IOU (guided flow)\n"
     "📋 /edawoch — List IOUs\n"
-    "💸 /kefel [number] — Mark IOU as paid\n"
-    "💰 /sebeseb title - amount each — Collection (group)\n"
-    "📋 /mesebeboch — Active collections (group)\n"
+    "💸 /kefel — Mark IOU as paid\n"
+    "💰 /sebseb — Start a collection (group)\n"
+    "📋 /mewachoch — Active collections (group)\n"
     "📊 /dashboard — Dashboard\n"
     "🛡 /netib — Trust score\n"
     "🌍 /language — Change language\n"
